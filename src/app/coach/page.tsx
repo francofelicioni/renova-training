@@ -29,7 +29,7 @@ export default async function CoachPage() {
         .select('ses1,ses2,ses3')
         .eq('student_id', s.id)
       const done = (att || []).reduce((n, r) => n + (r.ses1 ? 1 : 0) + (r.ses2 ? 1 : 0) + (r.ses3 ? 1 : 0), 0)
-      return { ...s, mesoWeeks, sessionsDone: done, sessionsTotal: mesoWeeks * 3 }
+      return { ...s, mesoWeeks, hasPlan: !!plan, sessionsDone: done, sessionsTotal: mesoWeeks * 3 }
     })
   )
 

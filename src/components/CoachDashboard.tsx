@@ -9,6 +9,7 @@ interface StudentSummary extends Profile {
   mesoWeeks: number
   sessionsDone: number
   sessionsTotal: number
+  hasPlan: boolean
 }
 
 interface Props {
@@ -137,7 +138,7 @@ export function CoachDashboard({ profile, students: initialStudents }: Props) {
                 <div style={{ height: 6, background: 'var(--surface-2)', borderRadius: 6, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct*100}%`, background: 'linear-gradient(90deg,var(--cyan),#0090a8)', borderRadius: 6, transition: 'width .5s' }} />
                 </div>
-                {s.student_plans && (
+                {s.hasPlan && (
                   <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
                     <span className="tag">{s.mesoWeeks} semanas</span>
                   </div>

@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { loginAction } from './actions'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function LoginPage() {
@@ -9,21 +8,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
-  const router = useRouter()
-  const supabase = createClient()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-      if (err) { setError(err.message); return }
-
-      const { data: { user } } = await supabase.auth.getUser()
-      const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', user!.id).single()
-      router.push(profile?.role === 'coach' ? '/coach' : '/student')
+      const result = await loginAction(email, password)
+      if (result?.error) setError(result.error)
     } finally {
       setLoading(false)
     }

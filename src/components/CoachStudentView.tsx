@@ -1,14 +1,16 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Profile, StudentPlan, ExerciseLog, Attendance, ExerciseVideo } from '@/lib/types'
+import type { Profile, StudentPlan, ExerciseLog, Attendance, ExerciseVideo, IntakeForm, MacroPlan } from '@/lib/types'
 import { ThemeToggle } from './ThemeToggle'
 import { SessionView } from './SessionView'
 import { ProgressSection } from './ProgressSection'
 import { AttendanceGrid } from './AttendanceGrid'
 import { PRTable } from './PRTable'
+import { IntakeFormView } from './IntakeFormView'
+import { MacroCalculator } from './MacroCalculator'
 
-type Tab = 'ses1' | 'ses2' | 'ses3' | 'asistencia' | 'progreso'
+type Tab = 'ses1' | 'ses2' | 'ses3' | 'asistencia' | 'progreso' | 'intake' | 'macros'
 
 interface Props {
   student: Profile
@@ -16,9 +18,11 @@ interface Props {
   logs: ExerciseLog[]
   attendance: Attendance[]
   videos: ExerciseVideo[]
+  intake: IntakeForm | null
+  macroPlan: MacroPlan | null
 }
 
-export function CoachStudentView({ student, plan, logs, attendance, videos }: Props) {
+export function CoachStudentView({ student, plan, logs, attendance, videos, intake, macroPlan }: Props) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('asistencia')
   const [week, setWeek] = useState(1)
@@ -33,6 +37,8 @@ export function CoachStudentView({ student, plan, logs, attendance, videos }: Pr
     { id: 'ses2',       label: '🦵 Ses. 2' },
     { id: 'ses3',       label: '🏆 Ses. 3' },
     { id: 'progreso',   label: '📈 PRs' },
+    { id: 'intake',     label: '📝 Intake' },
+    { id: 'macros',     label: '🥩 Macros' },
   ]
 
   const showWeekBar = ['ses1','ses2','ses3'].includes(tab)
@@ -48,7 +54,6 @@ export function CoachStudentView({ student, plan, logs, attendance, videos }: Pr
         <ThemeToggle />
       </header>
 
-      {/* Tab bar */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', overflowX: 'auto', scrollbarWidth: 'none' }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -62,7 +67,6 @@ export function CoachStudentView({ student, plan, logs, attendance, videos }: Pr
         ))}
       </div>
 
-      {/* Week bar for sessions */}
       {showWeekBar && (
         <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '10px 16px', display: 'flex', gap: 7, overflowX: 'auto', scrollbarWidth: 'none' }}>
           {[1,2,3,4,5,6,7,8].map(w => (
@@ -76,7 +80,6 @@ export function CoachStudentView({ student, plan, logs, attendance, videos }: Pr
         </div>
       )}
 
-      {/* Content */}
       {tab === 'asistencia' && (
         <div style={{ padding: '18px 16px', maxWidth: 620, margin: '0 auto' }}>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 3 }}>📋 Asistencia</div>
@@ -99,6 +102,23 @@ export function CoachStudentView({ student, plan, logs, attendance, videos }: Pr
         <div style={{ padding: '18px 16px', maxWidth: 620, margin: '0 auto' }}>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>📈 Récords Personales</div>
           <PRTable logs={logs} />
+        </div>
+      )}
+
+      {tab === 'intake' && (
+        <div style={{ padding: '18px 16px', maxWidth: 620, margin: '0 auto' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>📝 Formulario de ingreso</div>
+          {intake ? <IntakeFormView intake={intake} /> : (
+            <div className="card" style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
+              Este alumno no completó el formulario de ingreso.
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === 'macros' && (
+        <div style={{ padding: '18px 16px', maxWidth: 620, margin: '0 auto' }}>
+          <MacroCalculator studentId={student.id} intake={intake} initialPlan={macroPlan} />
         </div>
       )}
     </div>

@@ -19,11 +19,6 @@ export default async function CoachPage() {
     (students || []).map(async (s) => {
       const plan = Array.isArray(s.student_plans) ? s.student_plans[0] : s.student_plans
       const mesoWeeks = plan?.meso_weeks ?? 6
-      const { count } = await supabase
-        .from('attendance')
-        .select('*', { count: 'exact', head: true })
-        .eq('student_id', s.id)
-      // quick hack: get all attendance and count trues
       const { data: att } = await supabase
         .from('attendance')
         .select('ses1,ses2,ses3')
@@ -33,5 +28,23 @@ export default async function CoachPage() {
     })
   )
 
-  return <CoachDashboard profile={profile} students={studentsWithProgress} />
+  const { data: pendingStudents } = await supabase
+    .from('profiles')
+    .select('*')
+    .is('coach_id', null)
+    .eq('role', 'student')
+    .order('created_at', { ascending: false })
+
+  const pendingWithIntake = await Promise.all(
+    (pendingStudents || []).map(async (s) => {
+      const { data: intake } = await supabase
+        .from('intake_forms')
+        .select('*')
+        .eq('student_id', s.id)
+        .single()
+      return { ...s, intake: intake ?? null }
+    })
+  )
+
+  return <CoachDashboard profile={profile} students={studentsWithProgress} pending={pendingWithIntake} />
 }

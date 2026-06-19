@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Rutas públicas
-  if (pathname === '/login' || pathname === '/') {
+  if (pathname === '/login' || pathname === '/' || pathname.startsWith('/onboarding')) {
     if (user) {
       // Redirigir según rol
       const { data: profile } = await supabase

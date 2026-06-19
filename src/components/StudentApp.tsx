@@ -2,14 +2,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { Profile, StudentPlan, ExerciseLog, Attendance, ExerciseVideo } from '@/lib/types'
+import type { Profile, StudentPlan, ExerciseLog, Attendance, ExerciseVideo, MacroPlan } from '@/lib/types'
 import { ThemeToggle } from './ThemeToggle'
 import { SessionView } from './SessionView'
 import { ProgressSection } from './ProgressSection'
 import { AttendanceGrid } from './AttendanceGrid'
 import { PRTable } from './PRTable'
+import { MacroView } from './MacroView'
 
-type Page = 'home' | 'warmup' | 'ses1' | 'ses2' | 'ses3' | 'progreso'
+type Page = 'home' | 'warmup' | 'ses1' | 'ses2' | 'ses3' | 'progreso' | 'macros'
 
 interface Props {
   profile: Profile
@@ -17,11 +18,12 @@ interface Props {
   initialLogs: ExerciseLog[]
   initialAttendance: Attendance[]
   videos: ExerciseVideo[]
+  macroPlan: MacroPlan | null
 }
 
 const WEEKS = [1,2,3,4,5,6,7,8]
 
-export function StudentApp({ profile, plan, initialLogs, initialAttendance, videos }: Props) {
+export function StudentApp({ profile, plan, initialLogs, initialAttendance, videos, macroPlan }: Props) {
   const [page, setPage] = useState<Page>('home')
   const [week, setWeek] = useState(1)
   const [logs] = useState(initialLogs)
@@ -47,6 +49,7 @@ export function StudentApp({ profile, plan, initialLogs, initialAttendance, vide
     { id: 'ses2',     icon: '🦵', label: 'Ses. 2' },
     { id: 'ses3',     icon: '🏆', label: 'Ses. 3' },
     { id: 'progreso', icon: '📈', label: 'Progreso' },
+    { id: 'macros',   icon: '🥩', label: 'Macros' },
   ]
 
   return (
@@ -127,6 +130,8 @@ export function StudentApp({ profile, plan, initialLogs, initialAttendance, vide
           <PRTable logs={logs} />
         </div>
       )}
+
+      {page === 'macros' && <MacroView plan={macroPlan} />}
 
       {/* Bottom nav */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--surface)', borderTop: '1px solid var(--border)', display: 'flex', zIndex: 200 }}>

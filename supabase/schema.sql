@@ -178,3 +178,111 @@ create policy "Solo coach puede editar videos" on public.exercise_videos
 create index if not exists idx_logs_student on public.exercise_logs(student_id);
 create index if not exists idx_att_student  on public.attendance(student_id);
 create index if not exists idx_prof_coach   on public.profiles(coach_id);
+
+-- ─── Intake Forms ────────────────────────────────
+create table if not exists public.intake_forms (
+  id              uuid default uuid_generate_v4() primary key,
+  student_id      uuid references public.profiles(id) on delete cascade,
+  type            text not null check (type in ('remote','presencial')),
+
+  -- Step 1
+  nombre          text,
+  email           text,
+  whatsapp        text,
+  fecha_nacimiento date,
+  residencia      text,
+  movilidad_propia text,
+  sexo            text,
+  peso_kg         numeric(5,2),
+  altura_cm       int,
+
+  -- Step 2
+  ocupacion_actividad       text,
+  nivel_actividad           text,
+  tiene_planificacion       text,
+  descripcion_planificacion text,
+  tiempo_inactivo           text,
+  experiencia_fuerza        text,
+  ejercicios_familiares     text[],
+  ejercicios_excluidos      text,
+  lesiones_salud            text,
+
+  -- Step 3
+  nivel_estres              text,
+  pasos_diarios             text,
+  sueno_horario             text,
+  sueno_horas               text,
+  alimentacion_tipica       text,
+  num_comidas               text,
+  descripcion_alimentacion  text,
+  suplementos               text,
+
+  -- Step 4
+  objetivo                  text,
+  sesiones_semana           text,
+  tiempo_sesion             text,
+  motivacion_ahora          text,
+  compromiso_nivel          int,
+  compromiso_no_10          text,
+  como_llego                text,
+  info_adicional            text,
+
+  -- presencial only
+  lugar_entrenamiento       text,
+  horarios_preferidos       text[],
+  sesiones_presenciales     text,
+  inversion_dispuesto       text,
+  trabajo_entrenador_previo text,
+
+  submitted_at timestamptz default now()
+);
+
+alter table public.intake_forms enable row level security;
+
+create policy "Coach puede ver intake forms de sus alumnos" on public.intake_forms
+  for select using (
+    exists (
+      select 1 from public.profiles p
+      where p.id = intake_forms.student_id
+      and (p.coach_id = auth.uid() or is_coach())
+    )
+  );
+
+create policy "Service role puede insertar" on public.intake_forms
+  for insert with check (true);
+
+-- ─── Macro Plans ─────────────────────────────────
+create table if not exists public.macro_plans (
+  id              uuid default uuid_generate_v4() primary key,
+  student_id      uuid references public.profiles(id) on delete cascade unique,
+
+  weight_kg       numeric(5,2),
+  height_cm       int,
+  birth_date      date,
+  sex             text check (sex in ('Masculino','Femenino')),
+  activity_factor numeric(4,3) default 1.55,
+  goal            text default 'Mantenimiento',
+  goal_modifier   numeric(4,2) default 1.0,
+
+  tmb             numeric(7,2),
+  tdee            numeric(7,2),
+  target_calories numeric(7,2),
+
+  protein_g       numeric(6,1),
+  fat_g           numeric(6,1),
+  carbs_g         numeric(6,1),
+
+  coach_notes     text default '',
+  updated_at      timestamptz default now()
+);
+
+alter table public.macro_plans enable row level security;
+
+create policy "Ver macros propios o coach" on public.macro_plans
+  for select using (student_id = auth.uid() or owns_student(student_id) or is_coach());
+
+create policy "Coach gestiona macros" on public.macro_plans
+  for all using (owns_student(student_id) or is_coach());
+
+create index if not exists idx_intake_student on public.intake_forms(student_id);
+create index if not exists idx_macro_student  on public.macro_plans(student_id);

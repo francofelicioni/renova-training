@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { Profile } from '@/lib/types'
+import type { Profile, IntakeForm } from '@/lib/types'
 import { ThemeToggle } from './ThemeToggle'
 
 interface StudentSummary extends Profile {
@@ -12,19 +12,27 @@ interface StudentSummary extends Profile {
   hasPlan: boolean
 }
 
+interface PendingStudent extends Profile {
+  intake: IntakeForm | null
+}
+
 interface Props {
   profile: Profile
   students: StudentSummary[]
+  pending: PendingStudent[]
 }
 
-export function CoachDashboard({ profile, students: initialStudents }: Props) {
+export function CoachDashboard({ profile, students: initialStudents, pending: initialPending }: Props) {
   const router = useRouter()
   const supabase = createClient()
-  const [students, setStudents] = useState(initialStudents)
+  const [students] = useState(initialStudents)
+  const [pending, setPending] = useState(initialPending)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '', objective: '', meso_weeks: '6' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [assigning, setAssigning] = useState<string | null>(null)
+  const [selectedPending, setSelectedPending] = useState<PendingStudent | null>(null)
 
   async function logout() {
     await supabase.auth.signOut()
@@ -51,9 +59,26 @@ export function CoachDashboard({ profile, students: initialStudents }: Props) {
     }
   }
 
+  async function assignStudent(studentId: string) {
+    setAssigning(studentId)
+    try {
+      const res = await fetch('/api/students/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error); return }
+      setPending(p => p.filter(s => s.id !== studentId))
+      setSelectedPending(null)
+      router.refresh()
+    } finally {
+      setAssigning(null)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Header */}
       <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.18em', color: 'var(--cyan)', textTransform: 'uppercase' }}>Renova Training</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -65,6 +90,56 @@ export function CoachDashboard({ profile, students: initialStudents }: Props) {
       </header>
 
       <div style={{ padding: '20px 16px', maxWidth: 640, margin: '0 auto' }}>
+        {/* Pending requests */}
+        {pending.length > 0 && (
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Solicitudes pendientes</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+              {pending.length} {pending.length === 1 ? 'solicitud' : 'solicitudes'} sin asignar
+            </div>
+            {pending.map(s => (
+              <div key={s.id} className="card" style={{ marginBottom: 10, cursor: 'pointer' }}
+                onClick={() => setSelectedPending(selectedPending?.id === s.id ? null : s)}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700 }}>{s.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{s.email}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {s.intake && (
+                      <span className="tag">{s.intake.type === 'presencial' ? 'Presencial' : 'Online'}</span>
+                    )}
+                    <span style={{ fontSize: 18, color: 'var(--muted)' }}>{selectedPending?.id === s.id ? '▾' : '›'}</span>
+                  </div>
+                </div>
+
+                {selectedPending?.id === s.id && (
+                  <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 16 }} onClick={e => e.stopPropagation()}>
+                    {s.intake?.objetivo && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', marginBottom: 4 }}>Objetivo</div>
+                        <div style={{ fontSize: 14 }}>{s.intake.objetivo}</div>
+                      </div>
+                    )}
+                    {s.intake?.peso_kg && s.intake?.altura_cm && (
+                      <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: 13 }}>
+                        <span>Peso: <strong>{s.intake.peso_kg} kg</strong></span>
+                        <span>Altura: <strong>{s.intake.altura_cm} cm</strong></span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button className="btn-primary" disabled={assigning === s.id}
+                        onClick={() => assignStudent(s.id)} style={{ minHeight: 44 }}>
+                        {assigning === s.id ? 'Asignando...' : 'Asignar a mi lista'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 800 }}>Mis Alumnos</div>
@@ -73,7 +148,6 @@ export function CoachDashboard({ profile, students: initialStudents }: Props) {
           <button className="btn-primary" onClick={() => setShowForm(v => !v)}>+ Nuevo alumno</button>
         </div>
 
-        {/* New student form */}
         {showForm && (
           <div className="card" style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>Crear alumno</div>
@@ -113,11 +187,10 @@ export function CoachDashboard({ profile, students: initialStudents }: Props) {
           </div>
         )}
 
-        {/* Student cards */}
         {students.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--muted)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
-            <div>Todavía no tenés alumnos. Creá el primero arriba.</div>
+            <div>Todavía no tenés alumnos. Creá el primero arriba o asigná una solicitud pendiente.</div>
           </div>
         ) : (
           students.map(s => {

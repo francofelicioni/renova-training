@@ -20,6 +20,9 @@ export default async function StudentPage() {
   const { data: videos } = await supabase
     .from('exercise_videos').select('*')
 
+  const { data: macroPlan } = await supabase
+    .from('macro_plans').select('*').eq('student_id', user!.id).single()
+
   return (
     <StudentApp
       profile={profile}
@@ -27,6 +30,7 @@ export default async function StudentPage() {
       initialLogs={logs ?? []}
       initialAttendance={attendance ?? []}
       videos={videos ?? []}
+      macroPlan={macroPlan ?? null}
     />
   )
 }

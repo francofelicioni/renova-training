@@ -37,6 +37,18 @@ export default async function CoachStudentPage({ params }: { params: { id: strin
     .from('exercise_videos')
     .select('*')
 
+  const { data: intake } = await supabase
+    .from('intake_forms')
+    .select('*')
+    .eq('student_id', params.id)
+    .single()
+
+  const { data: macroPlan } = await supabase
+    .from('macro_plans')
+    .select('*')
+    .eq('student_id', params.id)
+    .single()
+
   return (
     <CoachStudentView
       student={student}
@@ -44,6 +56,8 @@ export default async function CoachStudentPage({ params }: { params: { id: strin
       logs={logs ?? []}
       attendance={attendance ?? []}
       videos={videos ?? []}
+      intake={intake ?? null}
+      macroPlan={macroPlan ?? null}
     />
   )
 }
